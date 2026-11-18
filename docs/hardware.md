@@ -38,9 +38,10 @@
 ## 烧录固件
 
 1. 按 [firmware/README.md](../firmware/README.md) 用 Keil 构建，得到 `firmware/Project/Objects/0-9A/Zily-Hardware.axf` 与 `Zily-Hardware.hex`。
-2. 用 ST-Link 连接 SWD（3.3V、GND、SWDIO、SWCLK），Keil 中 Flash → Download；或用 STM32CubeProgrammer 烧写 hex。
-3. 复位后串口应输出 `ZILY UART1 READY`，PB12 开始闪烁。
-4. 默认构建屏幕是空白的（等网页下发首帧）。想在没有电脑时检查 OLED 接线，把 `firmware/App/main.c` 的 `ZILY_BOOT_SELFTEST` 改为 `1` 重新编译，开机会跑约 2 秒图案自检。
+2. 用 ST-Link 连接 SWD（3.3V、GND、SWDIO、SWCLK）。**首次使用要先把下载驱动切到 ST-Link**：`Options for Target`（Alt+F7）→ `Debug` 页选 **ST-Link Debugger**（Port 选 SW，能看到 SW Device 即连接正常）→ `Utilities` 页勾选 `Use Target Driver for Flash Programming` 并同样选 **ST-Link Debugger** → OK。工程默认是 ULINK2，不改会在下载时报找不到设备。
+3. Keil 中 **Flash → Download（F8）**；或 Debug → Start/Stop Debug Session 后下载；也可用 STM32CubeProgrammer（ST-Link + SWD）烧写 hex。
+4. 复位后串口应输出 `ZILY UART1 READY`，PB12 开始闪烁。
+5. 默认构建屏幕是空白的（等网页下发首帧）。想在没有电脑时检查 OLED 接线，把 `firmware/App/main.c` 的 `ZILY_BOOT_SELFTEST` 改为 `1` 重新编译，开机会跑约 2 秒图案自检。
 
 ## 启动网页并连接设备
 
