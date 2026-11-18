@@ -1,4 +1,5 @@
-@echo off
+﻿@echo off
+chcp 65001 >nul
 cd /d "%~dp0"
 if not exist "node_modules\NeteaseCloudMusicApi\app.js" (
   echo Missing dependencies. Run "npm.cmd ci" in this folder first.
