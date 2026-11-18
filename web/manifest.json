@@ -1,0 +1,19 @@
+{
+  "name": "Music Companion",
+  "short_name": "Music Companion",
+  "lang": "zh-CN",
+  "start_url": "./",
+  "display": "standalone",
+  "icons": [
+    {
+      "src": "assets/icons/zily-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/zily-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

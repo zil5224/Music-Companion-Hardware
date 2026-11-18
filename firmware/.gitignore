@@ -1,0 +1,54 @@
+# Keil build directories and generated files
+Objects/
+Listings/
+*.axf
+*.hex
+*.elf
+*.map
+*.bin
+*.o
+*.obj
+*.d
+*.dep
+*.crf
+*.lst
+
+# Local Keil IDE state
+*.uvguix
+*.uvguix.*
+*.uvoptx
+
+# Environment variables, credentials, and personal configuration
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+credentials.json
+secrets.json
+.local/
+*.local
+*.local.*
+
+# Temporary files and system caches
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+*.log
+.cache/
+Thumbs.db
+Desktop.ini
+.DS_Store
+/Project/DebugConfig/Zily-Hardware_STM32F103C8_1.0.0.dbgconf
+/Project/EventRecorderStub.scvd
+*.exe
+*.bak-*
+
+tests/a8-evidence/
+

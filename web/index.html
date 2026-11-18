@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Companion</title>
+<link rel="icon" href="assets/icons/favicon.ico" type="image/x-icon" sizes="16x16 24x24 32x32 48x48">
+<link rel="apple-touch-icon" href="assets/icons/zily-icon-192.png">
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<canvas id="starfieldCanvas" style="position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;"></canvas>
+<div class="dot-matrix"></div>
+
+<img id="mascotImg" src="assets/mascot/zily-mascot.webp" style="width:64px;height:64px;right:14px;bottom:14px" alt="AI 伙伴">
+<div id="mascotBubble">今晚我在，别硬撑。</div>
+
+<div class="station-layout">
+  <aside class="station-nav" id="stationNav">
+    <button type="button" class="nav-toggle" id="navToggle" aria-label="收起导航" aria-expanded="true" aria-controls="stationLinks">
+      <span aria-hidden="true">♫</span>
+    </button>
+    <span id="navigationSaveStatus" class="memory-hint" role="status" hidden></span>
+    <nav id="stationLinks" aria-label="电台导航">
+      <a href="#stationHome" aria-current="page" aria-label="首页" title="首页"><span aria-hidden="true">⌂</span><span class="nav-label">首页</span></a>
+      <button type="button" popovertarget="playlistLibraryPanel" aria-label="我的歌单" title="我的歌单"><span aria-hidden="true">▤</span><span class="nav-label">我的歌单</span></button>
+      <button type="button" onclick="toggleFavDrawer()" aria-label="我喜欢的" title="我喜欢的"><span aria-hidden="true">♡</span><span class="nav-label">我喜欢的</span></button>
+      <button type="button" id="openRecent" popovertarget="recentPlaybackList" aria-label="最近播放" title="最近播放"><span aria-hidden="true">◷</span><span class="nav-label">最近播放</span></button>
+      <button type="button" popovertarget="preferencesPanel" aria-label="电台设置" title="电台设置"><span aria-hidden="true">⚙</span><span class="nav-label">电台设置</span></button>
+    </nav>
+  </aside>
+  <section class="card recent-popover" id="recentPlaybackList" popover aria-labelledby="recentPlaybackTitle">
+    <div class="recent-heading">
+      <h2 id="recentPlaybackTitle">最近播放</h2>
+      <button type="button" class="mood-chip" popovertarget="recentPlaybackList" popovertargetaction="hide">关闭</button>
+    </div>
+    <p id="recentPlaybackEmpty">还没有播放记录。</p>
+    <ol id="recentPlaybackItems"></ol>
+    <p id="queueRecentStatus" class="favorite-status" role="status"></p>
+    <p id="recentPlaybackStatus" role="status"></p>
+  </section>
+  <section class="card recent-popover" id="favDrawer" popover aria-labelledby="favDrawerTitle">
+    <div class="recent-heading">
+      <h2 id="favDrawerTitle">我喜欢的</h2>
+      <button type="button" class="mood-chip" popovertarget="favDrawer" popovertargetaction="hide">关闭</button>
+    </div>
+    <p id="queueFavoriteStatus" class="favorite-status" role="status"></p>
+    <p id="favoritePlaybackStatus" class="favorite-status" role="status" hidden></p>
+    <div id="favList"></div>
+  </section>
+  <section class="card recent-popover playlist-library" id="playlistLibraryPanel" popover aria-labelledby="playlistLibraryTitle">
+    <div class="recent-heading">
+      <h2 id="playlistLibraryTitle">我的歌单</h2>
+      <button type="button" class="mood-chip" popovertarget="playlistLibraryPanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <p id="playlistLibraryStatus" class="favorite-status" role="status"></p>
+    <div id="playlistLibraryList"></div>
+    <div id="playlistLibraryDetail" hidden></div>
+  </section>
+  <section class="card recent-popover queue-panel" id="playbackQueuePanel" popover aria-labelledby="queueTitle">
+    <div class="recent-heading">
+      <h2 id="queueTitle">播放队列</h2>
+      <button type="button" class="mood-chip" popovertarget="playbackQueuePanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <p id="queueCurrent">还没有播放歌曲</p>
+    <div class="queue-actions">
+      <button type="button" class="mood-chip" id="queueAddCurrent">加入当前歌曲</button>
+      <button type="button" class="mood-chip" id="queueStart">开始播放</button>
+      <button type="button" class="mood-chip" id="queueClear">清空待播</button>
+    </div>
+    <p id="queueStatus" class="favorite-status" role="status"></p>
+    <p id="queueEmpty">队列还没有待播歌曲。</p>
+    <ol id="queueEntries"></ol>
+    <form id="queueSearchForm">
+      <label>歌名<input id="queueSearchTitle" maxlength="100" required></label>
+      <label>歌手（可选）<input id="queueSearchArtist" maxlength="100"></label>
+      <button type="submit" class="mood-chip">核验歌曲</button>
+    </form>
+    <p id="queueSearchStatus" class="favorite-status" role="status"></p>
+    <div id="queueSearchResults" class="queue-actions"></div>
+  </section>
+
+  <section class="card recent-popover" id="preferencesPanel" popover aria-labelledby="preferencesTitle">
+    <div class="recent-heading">
+      <h2 id="preferencesTitle">电台设置</h2>
+      <button type="button" class="mood-chip" popovertarget="preferencesPanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <div class="companion-options preference-fields">
+          <label>回复长度 <select id="replyLength"><option value="short">简短</option><option value="long">多聊几句</option></select></label>
+          <label><input type="checkbox" id="musicSuggestions"> 允许提议听歌</label>
+          <label><input type="checkbox" id="saveConversation"> 在此浏览器保存聊天</label>
+          <button class="mood-chip" type="button" id="deleteConversation">删除聊天记录</button>
+          <button class="mood-chip" type="button" id="resetPreferences">清空偏好</button>
+          <button class="mood-chip" type="button" popovertarget="memoryPanel">长期记忆</button>
+          <button class="mood-chip" type="button" id="openBackup">数据管理</button>
+          <button class="mood-chip" type="button" popovertarget="hardwarePanel">硬件调试</button>
+          <span id="preferenceWriteStatus" class="memory-hint" role="status" hidden></span>
+    </div>
+  </section>
+  <section class="card recent-popover hardware-panel" id="hardwarePanel" popover aria-labelledby="hardwareTitle">
+    <div class="recent-heading">
+      <h2 id="hardwareTitle">STM32 串口调试</h2>
+      <button type="button" class="mood-chip" popovertarget="hardwarePanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <p class="hardware-status" id="hardwareStatus" role="status">未连接</p>
+    <p class="hardware-status" id="hardwareDevices"></p>
+    <p class="hardware-status" id="hardwareLockStatus" hidden>浏览器未提供同源串口互斥，使用系统端口独占。</p>
+    <p class="hardware-status" id="hardwareDeviceState">设备状态：未知 · 未知</p>
+    <p class="hardware-status" id="hardwareInputStatus">设备输入：未连接</p>
+    <p class="memory-hint" id="hardwareInputHint">实体输入（编码器）：旋转调音量（每档 ±5%），按下暂停/继续，快速按两下下一首。事件本身无 ACK，动作成功后用 0-7A 命令回写 MCU 状态。</p>
+    <div class="queue-actions hardware-actions">
+      <button type="button" class="mood-chip" id="hardwareConnect" disabled>连接设备</button>
+      <button type="button" class="mood-chip" id="hardwareRestore" disabled>恢复已授权设备</button>
+      <button type="button" class="mood-chip" id="hardwareDisconnect" disabled>断开设备</button>
+      <button type="button" class="mood-chip" id="hardwarePing" disabled>发送 PING</button>
+      <button type="button" class="mood-chip" id="hardwareEcho" disabled>发送 ECHO</button>
+    </div>
+    <h3 id="hardwareAppTitle">应用命令（只同步状态，不控制播放）</h3>
+    <div class="queue-actions hardware-actions">
+      <button type="button" class="mood-chip" id="hardwarePause" disabled>发送 PAUSE</button>
+      <button type="button" class="mood-chip" id="hardwareResume" disabled>发送 RESUME</button>
+      <button type="button" class="mood-chip" id="hardwareNext" disabled>发送 NEXT</button>
+      <button type="button" class="mood-chip" id="hardwareFavoriteOn" disabled>收藏 (1)</button>
+      <button type="button" class="mood-chip" id="hardwareFavoriteOff" disabled>取消收藏 (0)</button>
+    </div>
+    <h3 id="hardwareOledTitle">OLED 显示（跟随播放 + 实时频谱）</h3>
+    <p class="hardware-status" id="hardwareOledStatus">未连接</p>
+    <p class="memory-hint" id="hardwareOledHint">连接设备后自动跟随播放器：歌名/歌手变化即时更新，进度每秒一次，频谱约 8 Hz；「测试 OLED」会先暂停跟随，让静态测试屏（含演示频谱）留在屏幕上。</p>
+    <div class="queue-actions hardware-actions">
+      <button type="button" class="mood-chip" id="hardwareOledTest" disabled>测试 OLED</button>
+      <button type="button" class="mood-chip" id="hardwareOledFollow" disabled>暂停跟随</button>
+    </div>
+    <dl class="hardware-checks">
+      <dt>CRC16</dt><dd id="hardwareCrc">—</dd>
+      <dt>SEQ</dt><dd id="hardwareSeq">—</dd>
+    </dl>
+    <h3 id="hardwareLogTitle">最近通信</h3>
+    <ol id="hardwareLog" class="hardware-log" aria-labelledby="hardwareLogTitle" tabindex="0"></ol>
+  </section>
+  <section class="card recent-popover memory-panel backup-panel" id="backupPanel" popover aria-labelledby="backupTitle">
+    <div class="recent-heading">
+      <h2 id="backupTitle">数据备份与恢复</h2>
+      <button type="button" class="mood-chip" popovertarget="backupPanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <p class="memory-hint">备份文件为明文 JSON，含私人内容。可迁移到新设备，请妥善保管。</p>
+    <div class="memory-actions">
+      <button type="button" class="mood-chip" id="exportAllBackup">导出全部</button>
+      <button type="button" class="mood-chip" id="exportMemoryBackup">仅导出长期记忆</button>
+    </div>
+    <label><input type="checkbox" id="autoBrowserBackup"> 电台打开时定期将浏览器数据备份到本机（需启用长期记忆）</label>
+    <section aria-labelledby="backupImportTitle">
+      <h3 id="backupImportTitle">从文件恢复</h3>
+      <label>选择备份文件 <input id="backupFile" type="file" accept=".json,application/json"></label>
+      <p id="backupPreview" class="memory-hint" aria-live="polite"></p>
+      <div class="memory-actions">
+        <button type="button" class="mood-chip" id="applyBackup" disabled>确认恢复</button>
+        <button type="button" class="mood-chip" id="checkBackupRecovery">检查未完成的恢复</button>
+      </div>
+    </section>
+    <details>
+      <summary>连接此电脑上的原记忆资料库</summary>
+      <p class="memory-hint">在身份有效时设置口令并保存恢复编号。更换电脑时请使用备份文件。</p>
+      <div class="memory-form">
+        <label>设置恢复口令 <input id="setupRecoveryPassword" type="password" minlength="12" maxlength="128" autocomplete="new-password"></label>
+        <button type="button" class="mood-chip" id="setupBackupRecovery">设置恢复口令</button>
+        <label>恢复编号 <input id="backupRecoveryId" type="text" readonly></label>
+        <label>已保存的恢复编号 <input id="recoverId" type="text" maxlength="64" autocomplete="off"></label>
+        <label>恢复口令 <input id="recoverPassword" type="password" maxlength="128" autocomplete="off"></label>
+        <button type="button" class="mood-chip" id="recoverBackupIdentity">连接原资料库</button>
+      </div>
+    </details>
+    <p id="backupStatus" class="memory-status" role="status"></p>
+  </section>
+  <section class="card recent-popover memory-panel" id="memoryPanel" popover aria-labelledby="memoryTitle">
+    <div class="recent-heading">
+      <h2 id="memoryTitle">长期记忆</h2>
+      <button type="button" class="mood-chip" popovertarget="memoryPanel" popovertargetaction="hide">关闭</button>
+    </div>
+    <p id="memoryStatus" class="memory-status" role="status"></p>
+    <p id="memoryError" class="memory-error" role="alert" hidden></p>
+    <button id="retryMemory" type="button" class="mood-chip" hidden>重新加载</button>
+    <section id="memoryDisabled" hidden>
+      <p>长期记忆尚未启用。启用后，子夜可以在你的授权下保存和管理重要信息。</p>
+      <button id="enableMemory" type="button" class="mood-chip">启用长期记忆</button>
+    </section>
+    <section id="memoryEnabled" hidden>
+      <p class="memory-hint">这里只保存你手动确认的信息。关闭聊天引用后，已保存的记忆仍可管理。</p>
+      <label>
+        <input id="memoryUseInChat" type="checkbox" aria-describedby="memoryUseHint">
+        聊天中使用长期记忆
+      </label>
+      <span id="memoryUseStatus" class="memory-hint" role="status">已关闭</span>
+      <p id="memoryUseHint" class="memory-hint">开启后，相关长期记忆可能随聊天请求发送给当前配置的 AI 模型，用于提供更连贯的交流体验。</p>
+      <label>
+        <input id="memoryAutoExtract" type="checkbox" aria-describedby="memoryAutoHint">
+        自动发现值得记住的信息
+      </label>
+      <p id="memoryAutoHint" class="memory-hint">开启后，子夜会在部分对话完成后分析你主动表达的重要信息，并生成待确认记忆。未经你确认，不会写入长期记忆。符合条件的用户原话会发送给当前配置的 AI 模型。</p>
+      <section aria-labelledby="memoryCandidatesTitle">
+        <h3 id="memoryCandidatesTitle">待确认记忆</h3>
+        <p id="memoryCandidatesEmpty" class="memory-hint">暂无待确认记忆。</p>
+        <ul id="memoryCandidates" class="memory-list"></ul>
+      </section>
+      <div class="memory-toolbar">
+        <label>分类筛选<select id="memoryFilter"><option value="">全部分类</option></select></label>
+        <label>搜索<input id="memorySearch" type="search" maxlength="100" placeholder="搜索记忆正文"></label>
+        <button id="addMemory" type="button" class="mood-chip">添加记忆</button>
+      </div>
+      <form id="memoryForm" class="memory-form" hidden>
+        <h3 id="memoryFormTitle">添加记忆</h3>
+        <label>记忆内容<textarea id="memoryContent" rows="4" maxlength="1000" required></textarea></label>
+        <div class="memory-toolbar">
+          <label>记忆分类<select id="memoryCategory"></select></label>
+          <label>记忆类型<select id="memoryKind"></select></label>
+        </div>
+        <div class="memory-actions">
+          <button id="saveMemory" type="submit" class="mood-chip">保存</button>
+          <button id="cancelMemory" type="button" class="mood-chip">取消</button>
+        </div>
+      </form>
+      <p id="memoryEmpty" class="memory-hint" hidden></p>
+      <ul id="memoryList" class="memory-list"></ul>
+      <button id="clearMemories" type="button" class="mood-chip memory-danger" hidden>清空全部记忆</button>
+    </section>
+  </section>
+  <main class="station-main" id="stationHome">
+
+  <header class="radio-header">
+    <div>
+      <h1 class="station-brand">Music Companion</h1>
+      <div class="station-subtitle">在音乐与文字里，陪你度过这一段时间</div>
+    </div>
+    <div class="station-time flex items-center gap-3 text-xs">
+      <span class="station-date" id="dayDisplay"></span>
+      <span class="station-date" id="dateDisplay"></span>
+      <span class="clock-digit" id="clockDisplay">00:00</span>
+    </div>
+    <div class="moon-scene" aria-hidden="true">
+      <svg class="header-moon" viewBox="0 0 120 120">
+        <defs>
+          <radialGradient id="moonShade" cx=".36" cy=".27" r=".81">
+            <stop stop-color="#fff4df"/>
+            <stop offset=".66" stop-color="#e8d7cb"/>
+            <stop offset="1" stop-color="#a991a7"/>
+          </radialGradient>
+          <clipPath id="moonEdge"><circle cx="60" cy="60" r="57"/></clipPath>
+          <filter id="moonGrain" x="0" y="0" width="100%" height="100%">
+            <feTurbulence type="fractalNoise" baseFrequency=".24" numOctaves="3" seed="8"/>
+            <feColorMatrix type="saturate" values="0"/>
+          </filter>
+        </defs>
+        <g clip-path="url(#moonEdge)">
+          <circle cx="60" cy="60" r="57" fill="url(#moonShade)"/>
+          <g fill="#746279" opacity=".36">
+            <path d="M8 24 20 19 29 21 35 28 47 25 52 30 49 37 39 40 35 49 22 53 17 64 7 62 2 48Z"/>
+            <path d="m43 11 13-4 13 5 5 8-5 7-11 2-8-7z"/>
+            <path d="m63 38 10-9 13 2 10-5 7 6-3 12-11 6 3 8-7 11-14-2-6-8-11-4 1-11z"/>
+            <path d="m39 59 12-2 11 8 4 12-6 7-10-4-7 5-12-5-4-9z"/>
+            <path d="m93 75 10-4 7 3-2 8-10 4-7-5z"/>
+          </g>
+          <g fill="#fff5e4" opacity=".38">
+            <path d="m33 89 12 3 12-8-6 13 8 8-14-4-10 8 3-12-11-5z"/>
+            <path d="m77 77 8-4 1-7 4 8 9 3-10 1-4 7-1-7z"/>
+          </g>
+          <rect width="120" height="120" filter="url(#moonGrain)" opacity=".22" style="mix-blend-mode:multiply"/>
+        </g>
+      </svg>
+    </div>
+  </header>
+
+  <div class="station-grid">
+
+    <div class="card player-card" id="recentPlayback">
+      <input id="expandPlayer" class="visually-hidden" type="checkbox" aria-label="展开播放器">
+      <label for="expandPlayer" class="mini-expand">播放器 ▴</label>
+
+      <div class="cover-stage"><span class="cover-record" aria-hidden="true"></span><img id="songCover" alt="" hidden referrerpolicy="no-referrer"></div><canvas id="audioVisualizer" height="32"></canvas>
+
+      <div class="track-meta">
+        <h2 id="songTitle" class="text-base sm:text-lg font-tech text-gray-200 truncate tracking-wider">暂无播放</h2>
+        <p id="songArtist" class="text-xs text-gray-500 mt-0.5">在线电台</p>
+      </div>
+
+      <div class="player-progress flex flex-col gap-1">
+        <div class="progress-track" id="progressTrack" role="slider" tabindex="0" aria-label="播放进度" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0" aria-disabled="true" aria-valuetext="暂无可跳转的音源">
+          <div class="progress-fill" id="progressFill"></div>
+          <div class="progress-dot" id="progressDot"></div>
+        </div>
+        <div class="flex justify-between text-[10px] text-gray-600 font-tech">
+          <span id="timeCurrent">00:00</span><span><span id="previewBadge" class="preview-badge" title="完整版取决于网易云账号和曲目权限" hidden>试听</span> <span id="timeDuration">00:00</span></span>
+        </div>
+      </div>
+
+      <div class="player-controls">
+        <button class="ctrl-btn player-prev" onclick="prevSong()" aria-label="上一首">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><rect x="4" y="5" width="3" height="14"/><polygon points="10,12 20,5 20,19"/></svg>
+        </button>
+        <button class="btn-play" id="btnPlay" onclick="togglePlay()" aria-label="播放或暂停">
+          <svg id="iconPlay" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><polygon points="6,4 18,12 6,20"/></svg>
+          <svg id="iconPause" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" class="hidden"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>
+        </button>
+        <button class="ctrl-btn player-next" onclick="nextSong()" aria-label="下一首">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><polygon points="4,5 14,12 4,19"/><rect x="17" y="5" width="3" height="14"/></svg>
+        </button>
+        <button class="btn-heart" id="btnHeart" onclick="toggleFavorite()" title="收藏歌曲" aria-label="收藏歌曲" aria-pressed="false"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.8 8.6c0 4.1-8.8 9.5-8.8 9.5S3.2 12.7 3.2 8.6a4.6 4.6 0 0 1 8.8-1.8 4.6 4.6 0 0 1 8.8 1.8Z"/></svg></button>
+      </div>
+
+      <p id="favoriteWriteStatus" class="memory-hint" role="status" hidden></p>
+      <button type="button" class="mood-chip queue-launch" popovertarget="playbackQueuePanel">播放队列 <span id="queueCount">0</span></button>
+
+      <div class="player-lyrics">
+        <p class="text-[10px] tracking-[0.25em] text-gray-600 mb-2 font-tech">同步歌词</p>
+        <div class="lyrics-box px-4 py-3" style="max-height:155px" id="lyricsBox">
+          <div id="lyricsContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card chat-card">
+
+      <div class="px-4 py-3 flex items-center gap-3" style="border-bottom:1px solid rgba(255,255,255,0.05)">
+        <img src="assets/mascot/zily-mascot.webp" style="width:36px;height:36px;object-fit:contain" alt="子夜的头像">
+        <div class="flex-1">
+          <p class="text-sm font-tech text-gray-200 tracking-wider">子夜</p>
+          <p class="text-[10px] text-gray-600 font-tech flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 inline-block warm-dot"></span>正在守夜
+          </p>
+        </div>
+        <button id="btnLogin" onclick="handleLoginClick()"
+          class="btn-login guest">🔑 绑定网易云</button>
+      </div>
+
+
+      <section class="companion-tools px-4 py-3">
+        <fieldset class="station-modes">
+          <legend class="visually-hidden">电台模式</legend>
+          <label><input class="visually-hidden" type="radio" name="stationMode" value="work"><span>工作陪伴</span></label>
+          <label><input class="visually-hidden" type="radio" name="stationMode" value="light"><span>聊天解闷</span></label>
+          <label><input class="visually-hidden" type="radio" name="stationMode" value="listen" checked><span>倾诉</span></label>
+        </fieldset>
+        <div class="mood-shortcuts companion-navigation">
+          <button class="mood-chip" type="button" id="openTalk">想聊聊</button>
+          <button class="mood-chip" type="button" id="openFocus" aria-controls="focusPanel" aria-expanded="false">陪我专注</button>
+          <button class="mood-chip" type="button" id="newConversation">新对话</button>
+          <button class="mood-chip" type="button" id="resumeConversation">继续会话</button>
+          <select id="savedConversations" aria-label="已保存的聊天" hidden></select>
+          <button class="mood-chip" type="button" id="deleteSavedConversation" hidden>删除选中会话</button>
+        </div>
+        <div class="conversation-persistence">
+          <span id="conversationSaveStatus" role="status"></span>
+          <button class="mood-chip" type="button" id="retryConversationSave" hidden>重试保存</button>
+          <button class="mood-chip" type="button" id="copyConversation" hidden>另存当前对话</button>
+        </div>
+        <div class="companion-options" id="focusPanel" hidden>
+          <label>专注时长 <select id="focusDuration"><option value="25">25 分钟</option><option value="50">50 分钟</option></select></label>
+          <label>本轮目标 <input id="focusGoal" maxlength="100" placeholder="选填"></label>
+          <strong id="focusTime" aria-label="剩余时间">25:00</strong>
+          <button class="mood-chip" type="button" id="startFocus">开始</button>
+          <button class="mood-chip" type="button" id="pauseFocus" hidden>暂停</button>
+          <button class="mood-chip" type="button" id="cancelFocus" hidden>结束</button>
+          <button class="mood-chip" type="button" id="toggleFocusChat" hidden aria-expanded="false">展开聊天</button>
+          <div id="focusComplete" hidden>
+            <span id="focusSummary" role="status"></span>
+            <button class="mood-chip" type="button" id="continueFocus">继续</button>
+            <button class="mood-chip" type="button" id="restFocus">休息一下</button>
+            <button class="mood-chip" type="button" id="talkAfterFocus">聊两句</button>
+          </div>
+        </div>
+      </section>
+      <div class="chat-area flex-1 overflow-y-auto px-4 py-3 flex flex-col gap-3" id="chatMessages">
+        
+        <div class="flex items-start gap-2">
+          <div class="msg-ai welcome-message"><p>嗨，我是子夜。</p><p>想聊聊，听首歌，或者安静做会儿事，都可以。</p></div>
+        </div>
+      </div>
+
+      <div class="px-3 py-3 flex gap-2" style="border-top:1px solid rgba(255,255,255,0.05)">
+        <input id="chatInput" type="text" placeholder="聊聊心情，或问我最近的事…"
+          class="flex-1 px-3 py-2.5 text-sm outline-none font-tech tracking-wider"
+          style="background:rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.07);color:#ccc"
+          onkeydown="if(event.key==='Enter')sendMessage()">
+        <button id="chatSend" onclick="handleChatSend()" class="btn-send flex items-center gap-1.5">
+          <span id="chatSendLabel">发送</span><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+    </div>
+    <aside class="station-info" aria-label="今日电台">
+      <section class="card info-card daily-recommendation-card">
+        <div class="info-icon" aria-hidden="true">♫</div>
+        <h2>今日推荐</h2>
+        <button class="mood-chip daily-pick" type="button" id="requestMusic">推荐一首</button>
+        <p id="dailyRecommendationsEmpty">点「推荐一首」后，匹配成功的歌曲会出现在这里。</p>
+        <ol id="dailyRecommendations"></ol>
+        <p id="dailyRecommendationStatus" role="status" hidden></p>
+      </section>
+      <section class="card info-card">
+        <div class="info-icon" aria-hidden="true">☾</div>
+        <h2>今日心情</h2>
+        <p id="dailyMoodStatus" role="status">今天还没有记录。</p>
+        <label class="visually-hidden" for="dailyMood">选择今天的心情</label>
+        <select id="dailyMood">
+          <option value="">选个心情</option>
+          <option value="平静">平静</option>
+          <option value="开心">开心</option>
+          <option value="有点累">有点累</option>
+          <option value="烦躁">烦躁</option>
+          <option value="低落">低落</option>
+        </select>
+        <button id="clearDailyMood" class="mood-chip" type="button" hidden>清除</button>
+      </section>
+    </aside>
+  </div>
+  </main>
+</div>
+
+<!-- ── QR 登录模态框 ── -->
+<div class="qr-overlay" id="qrOverlay">
+  <div class="qr-card">
+    <p class="text-sm font-tech text-gray-200 tracking-wider mb-1">🔐 网易云扫码登录</p>
+    <p class="text-[10px] text-gray-500 mb-3">打开网易云音乐 App · 右上角扫一扫</p>
+    <div class="qr-img-wrap">
+      <img id="qrImage" src="" alt="QR Code">
+    </div>
+    <p id="qrStatus" class="text-[11px] text-gray-400 font-tech mb-4">正在生成新鲜二维码…</p>
+    <div class="flex justify-center gap-3">
+      <button onclick="closeQrModal()" class="btn-login guest">取消</button>
+      <button id="btnRefreshQr" onclick="openQrModal()" class="btn-login guest" style="display:none">🔄 刷新二维码</button>
+    </div>
+  </div>
+</div>
+
+<audio id="audioEl" style="display:none"></audio>
+
+<script src="js/00-storage-coordination.js"></script>
+<script src="js/01-config.js"></script>
+<script src="js/02-login.js"></script>
+<script src="js/03-starfield.js"></script>
+<script src="js/04-player.js"></script>
+<script src="js/06-audio.js"></script>
+<script src="js/07-mascot.js"></script>
+<script src="js/08-clock.js"></script>
+<script src="js/00-credentials.js"></script>
+<script src="js/09-chat.js"></script>
+<script src="js/17-music-companion.js"></script>
+<script src="js/18-playback-queue.js"></script>
+<script src="js/19-playlist-draft.js"></script>
+<script src="js/20-playlist-library.js"></script>
+<script src="js/21-playlist-manager.js"></script>
+<script src="js/11-companion.js"></script>
+<script src="js/12-conversation.js"></script>
+<script src="js/10-favorites.js"></script>
+<script src="js/13-navigation.js"></script>
+<script src="js/14-daily.js"></script>
+<script src="js/16-memory-discovery.js"></script>
+<script src="js/15-memory.js"></script>
+<script src="js/22-backup-format.js"></script>
+<script src="js/23-backup-browser.js"></script>
+<script src="js/24-backup-ui.js"></script>
+<script src="js/25-uart-protocol.js"></script>
+<script src="js/26-web-serial.js"></script>
+<script src="js/28-app-protocol.js"></script>
+<script src="js/29-oled-display.js"></script>
+<script src="js/30-player-observer.js"></script>
+<script src="js/31-oled-spectrum.js"></script>
+<script src="js/32-device-events.js"></script>
+<script src="js/33-title-scroll.js"></script>
+<script src="js/27-hardware-panel.js"></script>
+</body>
+</html>

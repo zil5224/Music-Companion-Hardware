@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  app:
+    name: 网页应用（语法与测试）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+
+  firmware:
+    name: 固件主机测试（gcc）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: 编译并运行全部主机测试
+        run: |
+          set -euo pipefail
+          FLAGS="-std=c99 -Wall -Wextra -Werror -Wconversion -pedantic -O2"
+
+          gcc $FLAGS -Ifirmware/App -Ifirmware/Drivers/OLED \
+            firmware/tests/uart_protocol_test.c \
+            firmware/App/zily_uart_protocol.c \
+            firmware/App/zily_app_state.c \
+            firmware/App/zily_display_service.c \
+            -o /tmp/uart_protocol_test
+          /tmp/uart_protocol_test
+
+          gcc $FLAGS -Ifirmware/App \
+            firmware/tests/input_service_test.c \
+            firmware/App/zily_input_service.c \
+            -o /tmp/input_service_test
+          /tmp/input_service_test
+
+          gcc $FLAGS -Ifirmware/App -Ifirmware/Drivers/OLED \
+            firmware/tests/display_service_test.c \
+            firmware/App/zily_uart_protocol.c \
+            firmware/App/zily_app_state.c \
+            firmware/App/zily_display_service.c \
+            -o /tmp/display_service_test
+          /tmp/display_service_test
+
+          gcc $FLAGS -Ifirmware/Drivers/OLED \
+            firmware/tests/oled_test.c \
+            firmware/Drivers/OLED/zily_oled.c \
+            -o /tmp/oled_test
+          /tmp/oled_test

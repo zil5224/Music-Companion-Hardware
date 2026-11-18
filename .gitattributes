@@ -1,0 +1,19 @@
+# 文本统一按 LF 保存，Windows 专用文件保留 CRLF
+* text=auto eol=lf
+*.cmd text eol=crlf
+*.uvprojx text eol=crlf
+*.uvoptx text eol=crlf
+
+# 二进制资源
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.webp binary
+*.mp4 binary
+*.axf binary
+*.hex binary
+*.bin binary
+*.o binary
+*.d binary
