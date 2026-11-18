@@ -67,6 +67,8 @@ Zily 桌面音乐伴侣终端的 STM32 固件子工程。目标芯片 STM32F103C
 
 设置好后 **Flash → Download（F8）**，或直接点工具栏的 LOAD 按钮。没有改成 ST-Link 就点下载，会提示找不到 ULINK2 设备或无法下载。
 
+如果下载时报 `Flash Download failed - "Cortex-M3"`，说明切换下载驱动后**编程算法列表是空的**：`Utilities → Settings…` → `Flash Download` 标签页 → `Programming Algorithm` 里点 `Add`，选 `STM32F10x Med-density Flash`（对应 `STM32F10x_128.FLM`），确认 Start `0x08000000`、Size `0x10000`（C8 是 64 KB），再点 OK 重新下载。
+
 也可以在 Keil 里 Debug → Start/Stop Debug Session（Ctrl+F5）进入调试会话后再下载。若用 STM32CubeProgrammer，则选择 ST-Link + SWD，加载 `Project/Objects/0-9A/Zily-Hardware.hex` 后点 Download。
 
 上电后串口会收到 `ZILY UART1 READY`，PB12 开始闪烁。默认构建屏幕保持空白，网页通过串口下发首帧后才有画面；需要在无主机时检查面板接线，可把 `App/main.c` 中的 `ZILY_BOOT_SELFTEST` 设为 `1` 重新编译，开机将运行约 2 秒的图案自检。
